@@ -36,6 +36,19 @@ passport.use('jwt', jwtStrategy);
 routeManager(app)
 swaggerDocs(app, process.env.PORT)
 
+// Contents 라우트 등록
+const contentsRoute = require('./route/v1/contents.route');
+app.use('/v1/contents', contentsRoute);
+
+// 업로드된 파일을 제공하기 위한 정적 경로 설정
+app.use('/uploads', express.static('uploads'));
+
+// uploads 디렉토리가 없으면 생성
+const fs = require('fs');
+if (!fs.existsSync('uploads')) {
+  fs.mkdirSync('uploads');
+}
+
 // error handler
 app.use(function (err, req, res, next) {
     console.error(err.stack)

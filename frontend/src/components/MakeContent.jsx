@@ -22,9 +22,23 @@ export default function MakeContent() {
     }
   }, [isLoggedIn, navigate]);
 
+  // 컴포넌트 언마운트 시 객체 URL 해제
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // 이전 미리보기 URL 해제
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      
       setImage(file);
       // 미리보기 URL 생성
       const fileUrl = URL.createObjectURL(file);
@@ -37,6 +51,22 @@ export default function MakeContent() {
     fileInputRef.current.click();
   };
 
+  const handleRemoveImage = (e) => {
+    e.stopPropagation(); // 이벤트 버블링 방지
+    
+    // 이미지 및 미리보기 초기화
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setImage(null);
+    setPreviewUrl('');
+    
+    // 파일 입력 초기화
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -44,62 +74,71 @@ export default function MakeContent() {
     setSuccess('');
 
     try {
-      // 여기에 콘텐츠 생성 API 호출 로직 추가
-      // API가 구현되면 아래 주석을 해제하고 사용하세요
-      /*
       // FormData를 사용하여 이미지 포함 데이터 전송
       const formData = new FormData();
       formData.append('title', title);
-      formData.append('description', description);
       if (image) {
         formData.append('image', image);
       }
 
-      const response = await fetch('http://localhost:3000/v1/content', {
+      // 토큰 가져오기
+      const tokens = JSON.parse(localStorage.getItem('tokens'));
+      if (!tokens || !tokens.access || !tokens.access.token) {
+        throw new Error('Authentication required');
+      }
+
+      const response = await fetch('http://localhost:3000/v1/contents', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${JSON.parse(localStorage.getItem('tokens')).access.token}`
+          'Authorization': `Bearer ${tokens.access.token}`
         },
         body: formData
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create content');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create content');
       }
 
       const data = await response.json();
-      */
+      setSuccess('Content created successfully!');
       
-      // 임시 성공 처리 (API 구현 전)
+      // 폼 초기화
+      setTitle('');
+      setDescription('');
+      setImage(null);
+      setPreviewUrl('');
+      
+      // 성공 후 메인 페이지로 리디렉션 (선택 사항)
       setTimeout(() => {
-        setSuccess('Content created successfully!');
-        // 폼 초기화
-        setTitle('');
-        setDescription('');
-        setImage(null);
-        setPreviewUrl('');
-        setIsLoading(false);
-      }, 1000);
+        navigate('/');
+      }, 2000);
       
     } catch (err) {
       console.error('Error creating content:', err);
-      setError(err.message || 'Failed to create content. Please try again.');
+      
+      if (err.message === 'Failed to fetch') {
+        setError('Cannot connect to the server. Please check that the backend server is running.');
+      } else {
+        setError(err.message || 'Failed to create content. Please try again.');
+      }
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Create New Escape Room Content</h1>
+    <div className="max-w-2xl p-6 mx-auto">
+      <h1 className="mb-6 text-2xl font-bold">1. 새로운 방탈출 게임 만들기</h1>
       
       {error && (
-        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
+        <div className="p-4 mb-4 text-red-700 bg-red-100 rounded">
           {error}
         </div>
       )}
       
       {success && (
-        <div className="mb-4 p-4 bg-green-100 text-green-700 rounded">
+        <div className="p-4 mb-4 text-green-700 bg-green-100 rounded">
           {success}
         </div>
       )}
@@ -107,7 +146,7 @@ export default function MakeContent() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-            Title
+            제목
           </label>
           <input
             type="text"
@@ -115,40 +154,35 @@ export default function MakeContent() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="mt-1 block w-full rounded-md border-2 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-4"
+            className="block w-full py-4 mt-1 border-2 border-gray-600 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
         </div>
-        
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-            Description
-          </label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            rows={4}
-            className="mt-1 block w-full rounded-md border-2 border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          />
-        </div>
-        
         <div>
           <label htmlFor="image" className="block text-sm font-medium text-gray-700">
-            Image
+            대표 이미지
           </label>
           <div 
             onClick={handleImageClick}
-            className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-600 border-dashed rounded-md cursor-pointer hover:bg-gray-50"
+            className="flex justify-center px-6 pt-5 pb-6 mt-1 border-2 border-gray-600 border-dashed rounded-md cursor-pointer hover:bg-gray-50"
           >
             <div className="space-y-1 text-center">
               {previewUrl ? (
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center relative">
                   <img 
                     src={previewUrl} 
                     alt="Preview" 
-                    className="max-h-48 mb-3 rounded" 
+                    className="mb-3 rounded max-h-48 object-contain" 
                   />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 focus:outline-none"
+                    aria-label="Remove image"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
                   <p className="text-xs text-gray-500">
                     Click to change image
                   </p>
@@ -156,7 +190,7 @@ export default function MakeContent() {
               ) : (
                 <>
                   <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
+                    className="w-12 h-12 mx-auto text-gray-400"
                     stroke="currentColor"
                     fill="none"
                     viewBox="0 0 48 48"

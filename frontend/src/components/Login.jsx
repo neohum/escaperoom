@@ -1,48 +1,51 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import axios from 'axios';
+
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
     
     try {
+      // Call the login function from AuthContext
       await login(email, password);
       navigate('/');
-    } catch (err) {
-      setError('Invalid email or password.');
+    } catch (error) {
+      console.error('Login error:', error);
+      
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        setError('Cannot connect to the server. Please check that the backend server is running.');
+      } else {
+        setError(error.message || 'Invalid email or password.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleForgotPassword = async (email) => {
-    try {
-      const response = await axios.post('http://localhost:3000/v1/auth/forgot-password', { email });
-      alert('Password reset email sent!');
-    } catch (error) {
-      console.error('Error sending password reset email:', error);
-      alert('Failed to send password reset email. Please try again.');
-    }
-  };
+
 
   return (
-    <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
+    <div className="flex flex-col justify-center flex-1 min-h-full px-6 py-12 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-        <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+        <h2 className="mt-10 text-2xl font-bold leading-9 tracking-tight text-center text-gray-900">
           Sign in to your account
         </h2>
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+          <div className="relative px-4 py-3 mb-4 text-red-700 bg-red-100 border border-red-400 rounded">
             {error}
           </div>
         )}
@@ -96,7 +99,7 @@ export default function Login() {
           </div>
         </form>
 
-        <div className="text-sm mt-4">
+        <div className="mt-4 text-sm">
           <Link 
             to="/forgot-password"
             className="font-medium text-indigo-600 hover:text-indigo-500"
@@ -105,7 +108,7 @@ export default function Login() {
           </Link>
         </div>
 
-        <p className="mt-10 text-center text-sm text-gray-500">
+        <p className="mt-10 text-sm text-center text-gray-500">
           Not a member?{' '}
           <Link to="/register" className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">
             Create a new account

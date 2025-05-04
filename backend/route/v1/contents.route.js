@@ -1,9 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const contentsController = require('../../controller/contents.controller');
-const auth = require('../../middleware/auth');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+// uploads 디렉토리가 없으면 생성
+if (!fs.existsSync('uploads')) {
+  fs.mkdirSync('uploads');
+  console.log('Created uploads directory in contents.route.js');
+}
 
 // 파일 업로드를 위한 multer 설정
 const storage = multer.diskStorage({
@@ -11,7 +17,8 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
 
@@ -27,132 +34,43 @@ const upload = multer({
   }
 });
 
-/**
- * @swagger
- * tags:
- *   name: Contents
- *   description: Content management endpoints
- */
+// 디버깅용 로그
+console.log('Contents routes loaded from contents.route.js');
 
-/**
- * @swagger
- * /contents:
- *   get:
- *     summary: Get all contents
- *     tags: [Contents]
- *     responses:
- *       200:
- *         description: List of all contents
- */
-router.get('/', contentsController.getAllContents);
+// 라우트 등록 확인
+router.get('/', (req, res) => {
+  console.log('GET /v1/contents route hit');
+  contentsController.getAllContents(req, res);
+});
 
-/**
- * @swagger
- * /contents/{id}:
- *   get:
- *     summary: Get content by ID
- *     tags: [Contents]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Content details
- *       404:
- *         description: Content not found
- */
-router.get('/:id', contentsController.getContentById);
+router.get('/:id', (req, res) => {
+  console.log(`GET /v1/contents/${req.params.id} route hit`);
+  contentsController.getContentById(req, res);
+});
 
-/**
- * @swagger
- * /contents:
- *   post:
- *     summary: Create new content
- *     tags: [Contents]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required:
- *               - title
- *             properties:
- *               title:
- *                 type: string
- *               image:
- *                 type: string
- *                 format: binary
- *     responses:
- *       201:
- *         description: Content created successfully
- *       401:
- *         description: Unauthorized
- */
-router.post('/', auth(), upload.single('image'), contentsController.createContent);
+router.post('/', upload.single('image'), (req, res) => {
+  console.log('POST /v1/contents route hit');
+  console.log('Request body:', req.body);
+  console.log('Request file:', req.file);
+  contentsController.createContent(req, res);
+});
 
-/**
- * @swagger
- * /contents/{id}:
- *   put:
- *     summary: Update content
- *     tags: [Contents]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               image:
- *                 type: string
- *                 format: binary
- *     responses:
- *       200:
- *         description: Content updated successfully
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Content not found
- */
-router.put('/:id', auth(), upload.single('image'), contentsController.updateContent);
+router.put('/:id', upload.single('image'), (req, res) => {
+  console.log(`PUT /v1/contents/${req.params.id} route hit`);
+  contentsController.updateContent(req, res);
+});
 
-/**
- * @swagger
- * /contents/{id}:
- *   delete:
- *     summary: Delete content
- *     tags: [Contents]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Content deleted successfully
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Content not found
- */
-router.delete('/:id', auth(), contentsController.deleteContent);
+router.delete('/:id', (req, res) => {
+  console.log(`DELETE /v1/contents/${req.params.id} route hit`);
+  contentsController.deleteContent(req, res);
+});
+
+// 라우트 등록 확인 로그
+console.log('Contents routes registered:');
+console.log('- GET /');
+console.log('- GET /:id');
+console.log('- POST /');
+console.log('- PUT /:id');
+console.log('- DELETE /:id');
 
 module.exports = router;

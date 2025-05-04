@@ -2,13 +2,14 @@ const nodemailer = require('nodemailer');
 const config = require('../config/config');
 const logger = require('../config/logger');
 
-// Mailtrap을 사용한 이메일 테스트 설정
+// Nate 메일 서버를 사용한 이메일 설정
 const transport = nodemailer.createTransport({
-  host: "sandbox.smtp.mailtrap.io",
-  port: 2525,
+  host: "smtp.mail.nate.com",
+  port: 587,
+  secure: false, // true for 465, false for other ports
   auth: {
-    user: process.env.MAILTRAP_USER,
-    pass: process.env.MAILTRAP_PASSWORD
+    user: process.env.NATE_EMAIL_USER || 'neohum', // Nate 이메일 계정
+    pass: process.env.NATE_EMAIL_PASSWORD || 'natemin9612@' // Nate 이메일 비밀번호
   }
 });
 
@@ -16,9 +17,9 @@ const transport = nodemailer.createTransport({
 if (process.env.NODE_ENV !== 'test') {
   transport
     .verify()
-    .then(() => logger.info('Connected to Mailtrap email server'))
+    .then(() => logger.info('Connected to Nate email server'))
     .catch((err) => {
-      logger.warn('Unable to connect to Mailtrap email server. Check your credentials.');
+      logger.warn('Unable to connect to Nate email server. Check your credentials.');
       logger.error(err.message);
     });
 }
@@ -28,14 +29,14 @@ const sendEmail = async (to, subject, text) => {
   try {
     // from 주소를 환경 변수에서 가져옴
     const msg = { 
-      from: process.env.EMAIL_FROM || '"Escape Room" <noreply@escaperoom.com>', 
+      from: process.env.EMAIL_FROM || '"Escape Room" <your-nate-email@nate.com>', 
       to, 
       subject, 
       text 
     };
     
     logger.info(`Attempting to send email to ${to} with subject: ${subject}`);
-    logger.info(`Using SMTP credentials: ${process.env.MAILTRAP_USER}`);
+    logger.info(`Using SMTP credentials: ${process.env.NATE_EMAIL_USER}`);
     
     // 이메일 전송
     const info = await transport.sendMail(msg);
@@ -55,32 +56,36 @@ const sendEmail = async (to, subject, text) => {
 
 // 비밀번호 재설정 이메일 전송
 const sendResetPasswordEmail = async (to, token) => {
-  const subject = 'Reset password';
-  const resetPasswordUrl = `http://localhost:5173/reset-password?token=${token}`;
-  const text = `Dear user,
+  const subject = '비밀번호 재설정';
+  // 프론트엔드 URL을 환경 변수에서 가져오거나 기본값 사용
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const resetPasswordUrl = `${frontendUrl}/reset-password?token=${token}`;
+  const text = `안녕하세요,
   
-To reset your password, click on this link: ${resetPasswordUrl}
+비밀번호를 재설정하려면 다음 링크를 클릭하세요: ${resetPasswordUrl}
 
-If you did not request any password resets, then ignore this email.
+비밀번호 재설정을 요청하지 않았다면 이 이메일을 무시하세요.
 
-Thanks,
-Escape Room Team`;
+감사합니다,
+Escape Room 팀`;
 
   return await sendEmail(to, subject, text);
 };
 
 // 이메일 인증 메일 전송
 const sendVerificationEmail = async (to, token) => {
-  const subject = 'Email Verification';
-  const verificationEmailUrl = `http://localhost:5173/verify-email?token=${token}`;
-  const text = `Dear user,
+  const subject = '이메일 인증';
+  // 프론트엔드 URL을 환경 변수에서 가져오거나 기본값 사용
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const verificationEmailUrl = `${frontendUrl}/verify-email?token=${token}`;
+  const text = `안녕하세요,
   
-To verify your email, click on this link: ${verificationEmailUrl}
+이메일을 인증하려면 다음 링크를 클릭하세요: ${verificationEmailUrl}
 
-If you did not create an account, then ignore this email.
+계정을 만들지 않았다면 이 이메일을 무시하세요.
 
-Thanks,
-Escape Room Team`;
+감사합니다,
+Escape Room 팀`;
 
   return await sendEmail(to, subject, text);
 };

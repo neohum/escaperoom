@@ -32,33 +32,18 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
+    <div className="flex flex-col justify-center flex-1 min-h-full px-6 py-12 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-        <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+        <h2 className="mt-10 text-2xl font-bold leading-9 tracking-tight text-center text-gray-900">
           Forgot Password
         </h2>
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        {message && (
-          <div className="mb-4 p-4 bg-green-100 text-green-700 rounded">
-            <p>{message}</p>
-            {note && <p className="mt-2 text-sm">{note}</p>}
-            <p className="mt-2 text-xs">
-              <a 
-                href="https://mailtrap.io/inboxes" 
-                target="_blank"
-                rel="noopener noreferrer" 
-                className="text-blue-600 hover:text-blue-800 underline"
-              >
-                Visit Mailtrap inbox →
-              </a>
-            </p>
-          </div>
-        )}
+        {message }
         
         {error && (
-          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
+          <div className="p-4 mb-4 text-red-700 bg-red-100 rounded">
             <p>{error}</p>
           </div>
         )}
@@ -93,20 +78,7 @@ export default function ForgotPassword() {
           </div>
         </form>
         
-        <div className="mt-6 p-4 bg-gray-100 rounded text-sm">
-          <h3 className="font-medium mb-2">Using Mailtrap for Testing</h3>
-          <p className="mb-2">
-            This is a test environment. All emails will be sent to Mailtrap instead of real email addresses.
-          </p>
-          <p>
-            To view sent emails, you need to:
-          </p>
-          <ol className="list-decimal pl-5 mt-2 space-y-1">
-            <li>Log in to your Mailtrap account</li>
-            <li>Go to the inbox configured for this application</li>
-            <li>Check for the password reset email</li>
-          </ol>
-        </div>
+        
       </div>
     </div>
   );

@@ -1,91 +1,100 @@
 const db = require('../models');
 const Contents = db.contents;
+const contentsService = require('../service/contents.service');
 
 // 모든 콘텐츠 조회
 exports.getAllContents = async (req, res) => {
   try {
-    const contents = await Contents.findAll();
+    console.log('Controller: getAllContents called');
+    const contents = await contentsService.getAllContents();
+    console.log('Retrieved contents:', contents);
     res.status(200).json(contents);
   } catch (error) {
     console.error('Error getting contents:', error);
-    res.status(500).json({ message: 'Failed to get contents' });
+    res.status(500).json({ message: error.message || 'Failed to get contents' });
   }
 };
 
 // 특정 콘텐츠 조회
 exports.getContentById = async (req, res) => {
   try {
-    const content = await Contents.findByPk(req.params.id);
+    console.log(`Controller: getContentById called with ID: ${req.params.id}`);
+    const content = await contentsService.getContentById(req.params.id);
     if (!content) {
       return res.status(404).json({ message: 'Content not found' });
     }
     res.status(200).json(content);
   } catch (error) {
     console.error('Error getting content:', error);
-    res.status(500).json({ message: 'Failed to get content' });
+    res.status(500).json({ message: error.message || 'Failed to get content' });
   }
 };
 
 // 콘텐츠 생성
 exports.createContent = async (req, res) => {
   try {
-    // 이미지 파일 처리는 multer 미들웨어를 통해 이루어집니다
-    const { title } = req.body;
-    let image = null;
+    console.log('Controller: createContent called');
+    console.log('Request headers:', req.headers);
+    console.log('Request body:', req.body);
+    console.log('Request file:', req.file);
     
+    if (!req.file) {
+      console.log('No file uploaded or file upload failed');
+    }
+    
+    // 직접 DB에 저장 (서비스 레이어 우회)
+    let image = null;
     if (req.file) {
-      // 파일이 업로드된 경우, 파일 경로 저장
-      image = req.file.path;
+      console.log(`File uploaded: ${req.file.filename}`);
+      image = `/uploads/${req.file.filename}`;
     }
     
     const newContent = await Contents.create({
-      title,
-      image
+      title: req.body.title,
+      image: image
     });
     
-    res.status(201).json(newContent);
+    console.log(`Content created with ID: ${newContent.id}`);
+    
+    res.status(201).json({
+      message: 'Content created successfully',
+      data: newContent
+    });
   } catch (error) {
     console.error('Error creating content:', error);
-    res.status(500).json({ message: 'Failed to create content' });
+    res.status(500).json({ message: error.message || 'Failed to create content' });
   }
 };
 
 // 콘텐츠 수정
 exports.updateContent = async (req, res) => {
   try {
-    const content = await Contents.findByPk(req.params.id);
-    if (!content) {
-      return res.status(404).json({ message: 'Content not found' });
-    }
-    
-    const { title } = req.body;
-    let updateData = { title };
-    
-    if (req.file) {
-      // 새 이미지가 업로드된 경우
-      updateData.image = req.file.path;
-    }
-    
-    await content.update(updateData);
-    res.status(200).json(content);
+    console.log(`Controller: updateContent called with ID: ${req.params.id}`);
+    const updatedContent = await contentsService.updateContent(req.params.id, req.body, req.file);
+    res.status(200).json({
+      message: 'Content updated successfully',
+      data: updatedContent
+    });
   } catch (error) {
     console.error('Error updating content:', error);
-    res.status(500).json({ message: 'Failed to update content' });
+    if (error.message === 'Content not found') {
+      return res.status(404).json({ message: 'Content not found' });
+    }
+    res.status(500).json({ message: error.message || 'Failed to update content' });
   }
 };
 
 // 콘텐츠 삭제
 exports.deleteContent = async (req, res) => {
   try {
-    const content = await Contents.findByPk(req.params.id);
-    if (!content) {
-      return res.status(404).json({ message: 'Content not found' });
-    }
-    
-    await content.destroy();
+    console.log(`Controller: deleteContent called with ID: ${req.params.id}`);
+    await contentsService.deleteContent(req.params.id);
     res.status(200).json({ message: 'Content deleted successfully' });
   } catch (error) {
     console.error('Error deleting content:', error);
-    res.status(500).json({ message: 'Failed to delete content' });
+    if (error.message === 'Content not found') {
+      return res.status(404).json({ message: 'Content not found' });
+    }
+    res.status(500).json({ message: error.message || 'Failed to delete content' });
   }
 };

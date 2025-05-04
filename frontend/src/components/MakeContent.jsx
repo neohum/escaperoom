@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext.jsx';
 
 export default function MakeContent() {
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -79,41 +78,71 @@ export default function MakeContent() {
       formData.append('title', title);
       if (image) {
         formData.append('image', image);
+        console.log('Image appended to FormData:', image.name);
       }
 
-      // 토큰 가져오기
+      // 토큰 가져오기 (인증이 필요한 경우)
+      let headers = {};
       const tokens = JSON.parse(localStorage.getItem('tokens'));
-      if (!tokens || !tokens.access || !tokens.access.token) {
-        throw new Error('Authentication required');
+      if (tokens && tokens.access && tokens.access.token) {
+        headers['Authorization'] = `Bearer ${tokens.access.token}`;
+        console.log('Authorization header added');
       }
-
+      
+      // Content-Type 헤더를 설정하지 않음 (브라우저가 자동으로 설정)
+      console.log('Sending request to http://localhost:3000/v1/contents');
       const response = await fetch('http://localhost:3000/v1/contents', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${tokens.access.token}`
-        },
+        headers: headers,
         body: formData
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create content');
-      }
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries([...response.headers]));
 
-      const data = await response.json();
-      setSuccess('Content created successfully!');
-      
-      // 폼 초기화
-      setTitle('');
-      setDescription('');
-      setImage(null);
-      setPreviewUrl('');
-      
-      // 성공 후 메인 페이지로 리디렉션 (선택 사항)
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
-      
+      const contentType = response.headers.get('content-type');
+      console.log('Response content type:', contentType);
+
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to create content');
+        }
+        
+        setSuccess('Content created successfully!');
+        console.log('Content created successfully:', data);
+        
+        // 폼 초기화
+        setTitle('');
+        setImage(null);
+        setPreviewUrl('');
+        
+        // 성공 후 메인 페이지로 리디렉션
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      } else {
+        const text = await response.text();
+        console.log('Response text:', text);
+        
+        if (!response.ok) {
+          throw new Error('Failed to create content');
+        }
+        
+        setSuccess('Content created successfully!');
+        
+        // 폼 초기화
+        setTitle('');
+        setImage(null);
+        setPreviewUrl('');
+        
+        // 성공 후 메인 페이지로 리디렉션
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      }
     } catch (err) {
       console.error('Error creating content:', err);
       
@@ -126,6 +155,36 @@ export default function MakeContent() {
       setIsLoading(false);
     }
   };
+
+  // 디버깅 도구 추가
+  
+
+  // 라우트 테스트 함수 추가
+  const testRoutes = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/routes-test');
+      const data = await response.json();
+      console.log('Available routes:', data.routes);
+      
+      // POST /v1/contents 경로가 있는지 확인
+      const hasContentsRoute = data.routes.some(route => 
+        route.path === '/v1/contents' && route.methods.includes('POST')
+      );
+      
+      console.log('Has POST /v1/contents route:', hasContentsRoute);
+      
+      if (!hasContentsRoute) {
+        setError('POST /v1/contents route is not registered on the server');
+      }
+    } catch (err) {
+      console.error('Error testing routes:', err);
+    }
+  };
+
+  // 컴포넌트 마운트 시 라우트 테스트
+  useEffect(() => {
+    testRoutes();
+  }, []);
 
   return (
     <div className="max-w-2xl p-6 mx-auto">
@@ -167,19 +226,19 @@ export default function MakeContent() {
           >
             <div className="space-y-1 text-center">
               {previewUrl ? (
-                <div className="flex flex-col items-center relative">
+                <div className="relative flex flex-col items-center">
                   <img 
                     src={previewUrl} 
                     alt="Preview" 
-                    className="mb-3 rounded max-h-48 object-contain" 
+                    className="object-contain mb-3 rounded max-h-48" 
                   />
                   <button
                     type="button"
                     onClick={handleRemoveImage}
-                    className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 focus:outline-none"
+                    className="absolute top-0 right-0 p-1 text-white bg-red-500 rounded-full hover:bg-red-600 focus:outline-none"
                     aria-label="Remove image"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                   </button>
@@ -234,6 +293,7 @@ export default function MakeContent() {
           </button>
         </div>
       </form>
+      
     </div>
   );
 }

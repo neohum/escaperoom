@@ -52,8 +52,8 @@ const forgotPassword = catchAsync(async (req, res) => {
         
         // 성공 응답 반환
         res.status(httpStatus.OK).send({
-            message: 'Password reset email sent successfully. Please check your Mailtrap inbox.',
-            note: 'This is a test environment. Check your Mailtrap inbox to see the password reset email.'
+            message: 'Password reset email sent successfully. Please check your Main',
+            note: 'Check your Mailtrap inbox to see the password reset email.'
         });
     } catch (error) {
         console.error('Password reset error:', error);

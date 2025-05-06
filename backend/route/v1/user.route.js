@@ -5,6 +5,9 @@ const auth = require("../../middleware/auth");
 const validate = require('../../middleware/validate');
 const userValidation = require('../../validations/user.validation');
 
+// This might be the problematic line
+
+
 router
     .route('/')
     .post(auth('manageUsers'),validate(userValidation.createUser) ,userController.signUp)

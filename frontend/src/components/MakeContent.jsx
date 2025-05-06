@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import axios from 'axios';
 
 export default function MakeContent() {
   const [title, setTitle] = useState('');
   const [image, setImage] = useState(null);
+  const [imageUrl, setImageUrl] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const fileInputRef = useRef(null);
   const { isLoggedIn } = useAuth();
@@ -50,114 +53,52 @@ export default function MakeContent() {
     fileInputRef.current.click();
   };
 
-  const handleRemoveImage = (e) => {
-    e.stopPropagation(); // 이벤트 버블링 방지
-    
-    // 이미지 및 미리보기 초기화
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-    setImage(null);
-    setPreviewUrl('');
-    
-    // 파일 입력 초기화
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    setIsSubmitting(true);
     setError('');
-    setSuccess('');
-
+    
     try {
-      // FormData를 사용하여 이미지 포함 데이터 전송
-      const formData = new FormData();
-      formData.append('title', title);
-      if (image) {
-        formData.append('image', image);
-        console.log('Image appended to FormData:', image.name);
-      }
-
-      // 토큰 가져오기 (인증이 필요한 경우)
-      let headers = {};
+      // Get authentication token
       const tokens = JSON.parse(localStorage.getItem('tokens'));
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
       if (tokens && tokens.access && tokens.access.token) {
         headers['Authorization'] = `Bearer ${tokens.access.token}`;
-        console.log('Authorization header added');
       }
       
-      // Content-Type 헤더를 설정하지 않음 (브라우저가 자동으로 설정)
-      console.log('Sending request to http://localhost:3000/v1/contents');
-      const response = await fetch('http://localhost:3000/v1/contents', {
-        method: 'POST',
-        headers: headers,
-        body: formData
-      });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries([...response.headers]));
-
-      const contentType = response.headers.get('content-type');
-      console.log('Response content type:', contentType);
-
-      if (contentType && contentType.includes('application/json')) {
-        const data = await response.json();
-        console.log('Response data:', data);
-        
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to create content');
-        }
-        
-        setSuccess('Content created successfully!');
-        console.log('Content created successfully:', data);
-        
-        // 폼 초기화
-        setTitle('');
-        setImage(null);
-        setPreviewUrl('');
-        
-        // 성공 후 메인 페이지로 리디렉션
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
+      // Make API call to create content
+      const response = await axios.post(
+        {
+          title: title,
+          image: image || null
+        },
+        { headers }
+      );
+      
+      if (response.data && response.data.id) {
+        // Redirect to content layout editor with new content ID
+        navigate(`/make_content/${response.data.id}`);
       } else {
-        const text = await response.text();
-        console.log('Response text:', text);
-        
-        if (!response.ok) {
-          throw new Error('Failed to create content');
-        }
-        
-        setSuccess('Content created successfully!');
-        
-        // 폼 초기화
-        setTitle('');
-        setImage(null);
-        setPreviewUrl('');
-        
-        // 성공 후 메인 페이지로 리디렉션
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
+        setError('콘텐츠 생성에 실패했습니다.');
       }
     } catch (err) {
       console.error('Error creating content:', err);
       
-      if (err.message === 'Failed to fetch') {
-        setError('Cannot connect to the server. Please check that the backend server is running.');
+      if (err.response) {
+        setError(err.response.data.message || `서버 오류: ${err.response.status}`);
+      } else if (err.request) {
+        setError('서버로부터 응답이 없습니다. 서버가 실행 중인지 확인하세요.');
       } else {
-        setError(err.message || 'Failed to create content. Please try again.');
+        setError(`오류: ${err.message}`);
       }
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
-
-  // 디버깅 도구 추가
-  
 
   // 라우트 테스트 함수 추가
   const testRoutes = async () => {
@@ -286,10 +227,10 @@ export default function MakeContent() {
         <div>
           <button
             type="submit"
-            disabled={isLoading}
-            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            disabled={isLoading || isSubmitting}
+            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading || isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            {isLoading ? 'Creating...' : 'Create Content'}
+            {isLoading || isSubmitting ? 'Creating...' : 'Create Content'}
           </button>
         </div>
       </form>

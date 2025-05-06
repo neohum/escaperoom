@@ -1,33 +1,29 @@
-import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import MainPage from './components/MainPage.jsx'
-import Login from './components/Login.jsx'
-import Register from './components/Register.jsx'
-import Headers from './components/Header.jsx'
-import ForgotPassword from './components/ForgotPassword.jsx'
-import ResetPassword from './components/ResetPassword.jsx'
-import MakeContent from './components/MakeContent.jsx'
-import { AuthProvider } from './context/AuthContext.jsx'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext.jsx';
+import MainPage from './components/MainPage.jsx';
+import LoginPage from './components/Login.jsx';
+import RegisterPage from './components/Register.jsx';
+import MakeContent from './components/MakeContent.jsx';
+import MakeContentLayout from './pages/MakeContentLayout.jsx';
+import MainContent from './components/MainContent.jsx';
+import Header from './components/Header.jsx';
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <div className="min-h-screen">
-          <Headers />
-          <Routes>
-            <Route path="/" element={<MainPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/make_content" element={<MakeContent />} />
-          </Routes>
-        </div>
-      </AuthProvider>
-    </BrowserRouter>
-  )
+    <AuthProvider>
+      <Router>
+        <Header />
+        <Routes>
+          <Route path="/" element={<MainPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/make_content" element={<MakeContent />} />
+          <Route path="/make_content/:id" element={<MakeContentLayout />} />
+          <Route path="/content/:id" element={<MainContent />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;

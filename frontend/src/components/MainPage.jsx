@@ -22,9 +22,23 @@ export default function MainPage() {
         }
         
         const data = await response.json();
-        console.log('Fetched contents:', data);
+        console.log('Fetched contents data structure:', typeof data, Array.isArray(data));
+        console.log('Fetched contents data:', JSON.stringify(data, null, 2));
         
-        setContents(Array.isArray(data) ? data : []);
+        // 데이터 구조 확인 후 적절히 처리
+        if (data && data.data && Array.isArray(data.data)) {
+          // API가 { data: [...] } 형식으로 응답하는 경우
+          console.log('Using data.data array');
+          setContents(data.data);
+        } else if (Array.isArray(data)) {
+          // API가 직접 배열로 응답하는 경우
+          console.log('Using direct array');
+          setContents(data);
+        } else {
+          // 기타 경우 빈 배열로 설정
+          console.log('Using empty array (invalid data format)');
+          setContents([]);
+        }
       } catch (err) {
         console.error('Error fetching contents:', err);
         setError(err.message);
@@ -109,6 +123,7 @@ export default function MainPage() {
           <p className="mt-2 text-gray-600 text-lg/8">새로운 방탈출을 경험하세요.</p>
         </div>
         <div className="grid max-w-2xl grid-cols-1 mx-auto mt-16 gap-x-8 gap-y-20 lg:mx-0 lg:max-w-none lg:grid-cols-3">
+          
           {contents.map((content) => (
             <article key={content.id} className="flex flex-col items-start justify-between">
               <div className="relative w-full">

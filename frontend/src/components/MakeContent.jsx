@@ -48,6 +48,25 @@ export default function MakeContent() {
     }
   };
 
+  // 이미지 제거 함수 추가
+  const handleRemoveImage = (e) => {
+    e.preventDefault();
+    e.stopPropagation(); // 이벤트 버블링 방지
+    
+    // 이전 미리보기 URL 해제
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    
+    setImage(null);
+    setPreviewUrl('');
+    
+    // 파일 입력 필드 초기화
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleImageClick = () => {
     // 숨겨진 파일 input을 클릭
     fileInputRef.current.click();
@@ -56,32 +75,64 @@ export default function MakeContent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // 유효성 검사
+    if (!title.trim()) {
+      setError('제목을 입력해주세요.');
+      return;
+    }
+    
     setIsSubmitting(true);
     setError('');
     
     try {
       // Get authentication token
-      const tokens = JSON.parse(localStorage.getItem('tokens'));
-      const headers = {
-        'Content-Type': 'application/json'
-      };
+      const tokens = JSON.parse(localStorage.getItem('tokens') || '{}');
       
+      // FormData 객체 생성
+      const formData = new FormData();
+      formData.append('title', title);
+      
+      if (image) {
+        formData.append('image', image);
+      }
+      
+      // 헤더 설정
+      const headers = {};
       if (tokens && tokens.access && tokens.access.token) {
         headers['Authorization'] = `Bearer ${tokens.access.token}`;
       }
       
-      // Make API call to create content
+      console.log('Submitting form with data:', { title, image: image ? image.name : 'none' });
+      
+      // 서버 상태 확인
+      try {
+        const statusResponse = await axios.get('/status');
+        console.log('Server status:', statusResponse.data);
+      } catch (statusError) {
+        console.error('Server status check failed:', statusError);
+      }
+      
+      // Make API call to create content (프록시 사용)
       const response = await axios.post(
-        {
-          title: title,
-          image: image || null
-        },
-        { headers }
+        '/v1/contents', // 상대 경로 사용 (프록시 적용)
+        formData,
+        { 
+          headers,
+          // FormData를 사용할 때는 Content-Type을 설정하지 않음
+          // axios가 자동으로 multipart/form-data로 설정
+        }
       );
       
+      console.log('Response:', response.data);
+      
       if (response.data && response.data.id) {
+        // 성공 메시지 설정
+        setSuccess('콘텐츠가 성공적으로 생성되었습니다!');
+        
         // Redirect to content layout editor with new content ID
-        navigate(`/make_content/${response.data.id}`);
+        setTimeout(() => {
+          navigate(`/make_content/${response.data.id}`);
+        }, 1000);
       } else {
         setError('콘텐츠 생성에 실패했습니다.');
       }
@@ -89,8 +140,10 @@ export default function MakeContent() {
       console.error('Error creating content:', err);
       
       if (err.response) {
+        console.error('Error response:', err.response.data);
         setError(err.response.data.message || `서버 오류: ${err.response.status}`);
       } else if (err.request) {
+        console.error('Error request:', err.request);
         setError('서버로부터 응답이 없습니다. 서버가 실행 중인지 확인하세요.');
       } else {
         setError(`오류: ${err.message}`);
@@ -103,7 +156,7 @@ export default function MakeContent() {
   // 라우트 테스트 함수 추가
   const testRoutes = async () => {
     try {
-      const response = await fetch('http://localhost:3000/routes-test');
+      const response = await fetch('http://localhost:3000/route-test');
       const data = await response.json();
       console.log('Available routes:', data.routes);
       

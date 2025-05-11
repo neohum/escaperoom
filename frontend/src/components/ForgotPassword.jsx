@@ -16,7 +16,8 @@ export default function ForgotPassword() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/v1/auth/forgot-password', { email });
+      // 상대 경로 사용 (프록시 설정 시)
+      const response = await axios.post('/v1/auth/forgot-password', { email });
       setMessage(response.data.message || 'Password reset email sent! Please check your inbox.');
       
       // 서버에서 추가 정보를 제공하는 경우 표시

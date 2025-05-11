@@ -17,6 +17,8 @@ export default function Login() {
     setIsLoading(true);
     
     try {
+      console.log('Attempting login with:', email);
+      
       // Call the login function from AuthContext
       await login(email, password);
       navigate('/');
@@ -25,6 +27,8 @@ export default function Login() {
       
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
         setError('Cannot connect to the server. Please check that the backend server is running.');
+      } else if (error.message === 'Server returned non-JSON response') {
+        setError('Server returned an invalid response. This might be due to a server error or incorrect API endpoint.');
       } else {
         setError(error.message || 'Invalid email or password.');
       }

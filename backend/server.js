@@ -1,15 +1,12 @@
 // 서버 시작 전 모델 관계 확인
-const db = require('./models');
-console.log('Checking model associations on server start:');
-Object.keys(db).forEach(modelName => {
-  if (db[modelName].associations) {
-    console.log(`${modelName} associations:`, Object.keys(db[modelName].associations));
-  }
-});
+const express = require('express');
+const app = express();
+const config = require('./config/config');
 
 // 업로드 디렉토리 확인
 const path = require('path');
 const fs = require('fs');
+const { expression } = require('joi');
 const uploadsDir = path.join(__dirname, 'uploads');
 
 if (!fs.existsSync(uploadsDir)) {
@@ -30,5 +27,6 @@ if (!fs.existsSync(uploadsDir)) {
 // 서버 시작
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}.`);
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`API URL: http://localhost:${PORT}`);
 });

@@ -8,7 +8,7 @@ const transport = nodemailer.createTransport({
   port: 587,
   secure: false, // true for 465, false for other ports
   auth: {
-    user: process.env.NATE_EMAIL_USER // Nate 이메일 계정
+    user: process.env.NATE_EMAIL_USER, // Nate 이메일 계정
     pass: process.env.NATE_EMAIL_PASSWORD// Nate 이메일 비밀번호
   }
 });

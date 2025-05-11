@@ -7,6 +7,9 @@
     "access": "public"
   },
   "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development JWT_SECRET=Malatya44 nodemon server.js",
+    "debug": "node --inspect server.js",
     "prepare": "npx sequelize-cli db:create && npx sequelize-cli db:migrate",
     "start:dev": "pm2 start --env dev",
     "start:test": "pm2 start --env test",

@@ -21,11 +21,13 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
+      console.log('Attempting login with:', { email });
+      
       // Check if we're receiving email and password or tokens directly
       let tokens;
       
       if (typeof email === 'string' && typeof password === 'string') {
-        // We received email and password, need to authenticate with the server
+        // API 요청 URL 수정 - 백엔드 서버 직접 호출
         const response = await fetch('http://localhost:3000/v1/auth/login', {
           method: 'POST',
           headers: {
@@ -34,19 +36,30 @@ export function AuthProvider({ children }) {
           body: JSON.stringify({ email, password })
         });
 
+        console.log('Login response status:', response.status);
+        
+        // 응답이 JSON이 아닌 경우 처리
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('Non-JSON response:', text);
+          throw new Error('Server returned non-JSON response');
+        }
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Login failed');
         }
 
         const data = await response.json();
+        console.log('Login response data:', data);
         tokens = data.tokens;
       } else {
         // We received tokens directly (for development mode or from another source)
         tokens = email; // In this case, email parameter contains the tokens
       }
-
-      // Store tokens in localStorage
+      
+      // 토큰 저장 및 상태 업데이트
       localStorage.setItem('tokens', JSON.stringify(tokens));
       setIsLoggedIn(true);
       return true;
@@ -55,13 +68,13 @@ export function AuthProvider({ children }) {
       
       // For development mode, allow login with mock tokens if server is not available
       if (process.env.NODE_ENV !== 'production' && 
-          error instanceof TypeError && 
-          error.message === 'Failed to fetch') {
+          (error instanceof TypeError || error instanceof SyntaxError || 
+           error.message === 'Server returned non-JSON response')) {
         
         console.log('Development mode: Creating mock tokens for testing');
         
         // Only proceed with mock login if explicitly requested
-        if (window.confirm('Server is not available. Use development mode login?')) {
+        if (window.confirm('Server is not available or returned invalid response. Use development mode login?')) {
           const mockTokens = {
             access: {
               token: 'mock-access-token',
@@ -86,9 +99,9 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      const tokens = JSON.parse(localStorage.getItem('tokens'))
-      if (!tokens?.refreshToken) {
-        throw new Error('No refresh token found')
+      const tokens = JSON.parse(localStorage.getItem('tokens'));
+      if (!tokens?.refresh?.token) {
+        throw new Error('No refresh token found');
       }
 
       const response = await fetch('http://localhost:3000/v1/auth/logout', {
@@ -97,18 +110,18 @@ export function AuthProvider({ children }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          refreshToken: tokens.refreshToken
+          refreshToken: tokens.refresh.token
         })
-      })
+      });
 
       if (!response.ok) {
-        console.error('Logout failed')
+        console.error('Logout failed');
       }
     } catch (error) {
-      console.error('Logout error:', error)
+      console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('tokens')
-      setIsLoggedIn(false)
+      localStorage.removeItem('tokens');
+      setIsLoggedIn(false);
     }
   }
 

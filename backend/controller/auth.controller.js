@@ -20,16 +20,26 @@ const login = catchAsync(async (req, res) => {
 });
 
 const register = catchAsync(async (req, res) => {
+  console.log('Register controller called with body:', req.body);
+  
+  try {
     const user = await userServices.createUser(req.body);
     if (user) {
-        const tokens = await tokenService.generateAuthTokens(user);
-        res.send({user, tokens});
-        return;
+      const tokens = await tokenService.generateAuthTokens(user);
+      console.log('User registered successfully:', user.email);
+      res.send({user, tokens});
+      return;
     }
+    console.log('User already exists');
     res.status(httpStatus.CONFLICT).send({
-        "message": "User already exists",
-    })
-
+      "message": "User already exists",
+    });
+  } catch (error) {
+    console.error('Error in register controller:', error);
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
+      "message": error.message || "Internal server error",
+    });
+  }
 });
 
 const logout = catchAsync(async (req, res) => {

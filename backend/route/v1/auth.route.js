@@ -31,4 +31,14 @@ router.post('/forgot-password', validate(authValidation.forgotPassword), authCon
 // 비밀번호 재설정
 router.post('/reset-password', validate(authValidation.resetPassword), authController.resetPassword);
 
+// 라우트 등록 확인 로그
+console.log('Auth routes registered:');
+console.log('- GET /v1/auth/test');
+console.log('- POST /v1/auth/register');
+console.log('- POST /v1/auth/login');
+console.log('- POST /v1/auth/logout');
+console.log('- POST /v1/auth/refresh-tokens');
+console.log('- POST /v1/auth/forgot-password');
+console.log('- POST /v1/auth/reset-password');
+
 module.exports = router;

@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const authRoute = require('./v1/auth.route');
 const userRoute = require('./v1/user.route');
-const contentRoute = require('./v1/content.route');
+const contentRoute = require('./v1/contents.route');
 
 const router = express.Router();
 
@@ -34,32 +34,29 @@ const v1Routes = [
   },
 ];
 
-// v1 라우트 등록 (각 라우트에 CORS 적용)
-v1Routes.forEach((route) => {
-  console.log(`Registering route: /v1${route.path}`);
-  router.use(`/v1${route.path}`, cors(corsOptions), route.route);
-});
-
 // 라우트 매니저 함수
 const routeManager = (app) => {
-  // API 라우트
-  app.use('/', router);
+  console.log('Initializing route manager...');
   
-  // 상태 확인 라우트 (CORS 적용)
-  app.options('/status', cors(corsOptions)); // 프리플라이트 요청 처리
-  app.get('/status', cors(corsOptions), (req, res) => {
-    res.json({ 
-      status: 'online',
-      timestamp: new Date().toISOString(),
-      message: 'Backend server is running!'
-    });
+  // CORS 미들웨어 적용
+  app.use(cors(corsOptions));
+  console.log('CORS middleware applied');
+  
+  // v1 라우트 등록
+  const v1Router = express.Router();
+  
+  v1Routes.forEach((route) => {
+    try {
+      v1Router.use(route.path, route.route);
+      console.log(`Registered route: /v1${route.path}`);
+    } catch (error) {
+      console.error(`Error registering route /v1${route.path}:`, error);
+    }
   });
   
-  // 테스트 라우트 (CORS 적용)
-  app.options('/test', cors(corsOptions)); // 프리플라이트 요청 처리
-  app.get('/test', cors(corsOptions), (req, res) => {
-    res.json({ message: 'Backend server is working!' });
-  });
+  // v1 라우터 등록
+  app.use('/v1', v1Router);
+  console.log('v1 router registered');
   
   // 루트 라우트 (CORS 적용)
   app.options('/', cors(corsOptions)); // 프리플라이트 요청 처리

@@ -27,8 +27,8 @@ export function AuthProvider({ children }) {
       let tokens;
       
       if (typeof email === 'string' && typeof password === 'string') {
-        // API 요청 URL 수정 - 백엔드 서버 직접 호출
-        const response = await fetch('http://localhost:3000/v1/auth/login', {
+        // API 요청 URL 수정 - 프록시 사용
+        const response = await fetch('/v1/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
